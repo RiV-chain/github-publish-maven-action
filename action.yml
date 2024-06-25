@@ -1,22 +1,23 @@
 name: "GitHub Maven repo Publish Action"
-description: "Build Java project with Gradle, extract metadata, and publish artifacts to a repository."
+description: "Build Java project with Gradle, extract metadata, and publish artifacts to GitHub repository."
 inputs:
   gh_pat:
-    description: "Personal Access Token for GitHub repository"
+    description: "Personal Access Token for GitHub Maven artifact repository"
     required: true
-    type: string
   artifact_repo:
     description: "GitHub repository to publish artifacts"
     required: true
-    type: string
   gradle_file_path:
     description: "Path to the Gradle file"
     required: true
-    type: string
+    default: "./gradlew"
   java_version:
     description: "Java version to set up"
     required: true
-    type: string
+  distribution:
+    description: "Java description to set up"
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -26,7 +27,7 @@ runs:
     - name: Set up JDK
       uses: actions/setup-java@v4
       with:
-        distribution: 'adopt'
+        distribution: ${{ inputs.description }}
         java-version: ${{ inputs.java_version }}
     
     - name: Extract latest commit message and hash
@@ -48,7 +49,6 @@ runs:
       shell: bash
 
     - name: Extract artifactId, groupId, version from generated POM file
-      id: extract_version
       run: |
         xml_file=$(find ~/.m2/repository -type f -name "*.pom" -print -quit)
         VERSION=$(xmlstarlet sel -N xmlns="http://maven.apache.org/POM/4.0.0" -t -v "//xmlns:project/xmlns:version" "$xml_file")
