@@ -45,3 +45,4 @@ Register ```secret.PAT``` with permission for you Maven repo and replace the pat
 # Notes:
   * Permissions: Ensure your repository permissions allow this action to perform the required tasks, including checking out repositories and pushing changes.
   * Secrets: Ensure the ```${{ secrets.PAT }}``` secret is set in your Maven GitHub repository secrets.
+  * Java ```distribution``` parameter receives possible values: https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions.
