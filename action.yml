@@ -27,7 +27,7 @@ runs:
     - name: Set up JDK
       uses: actions/setup-java@v4
       with:
-        distribution: ${{ inputs.description }}
+        distribution: ${{ inputs.distribution }}
         java-version: ${{ inputs.java_version }}
     
     - name: Extract latest commit message and hash
