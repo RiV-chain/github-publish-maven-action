@@ -1,0 +1,90 @@
+name: "GitHub Maven repo Publish Action"
+description: "Build Java project with Gradle, extract metadata, and publish artifacts to a repository."
+inputs:
+  gh_pat:
+    description: "Personal Access Token for GitHub repository"
+    required: true
+    type: string
+  artifact_repo:
+    description: "GitHub repository to publish artifacts"
+    required: true
+    type: string
+  gradle_file_path:
+    description: "Path to the Gradle file"
+    required: true
+    type: string
+  java_version:
+    description: "Java version to set up"
+    required: true
+    type: string
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout this repo
+      uses: actions/checkout@v4
+
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'adopt'
+        java-version: ${{ inputs.java_version }}
+    
+    - name: Extract latest commit message and hash
+      run: |
+        GIT_MESSAGE=$(git log -1 --pretty=format:"%s")
+        GIT_HASH=$(git log --pretty=format:'%h' -n 1)
+        echo "GIT_MESSAGE=$GIT_MESSAGE" >> $GITHUB_ENV
+        echo "GIT_HASH=$GIT_HASH" >> $GITHUB_ENV
+
+    - name: Install xmlstarlet
+      run: sudo apt-get install -y xmlstarlet
+
+    - name: Build with Gradle
+      run: |
+        bash ${{ inputs.gradle_file_path }} build
+        bash ${{ inputs.gradle_file_path }} publishToMavenLocal
+
+    - name: Extract artifactId, groupId, version from generated POM file
+      id: extract_version
+      run: |
+        xml_file=$(find ~/.m2/repository -type f -name "*.pom" -print -quit)
+        VERSION=$(xmlstarlet sel -N xmlns="http://maven.apache.org/POM/4.0.0" -t -v "//xmlns:project/xmlns:version" "$xml_file")
+        GROUPID=$(xmlstarlet sel -N xmlns="http://maven.apache.org/POM/4.0.0" -t -v "//xmlns:project/xmlns:groupId" "$xml_file" | sed 's/\./\//g')
+        ARTIFACTID=$(xmlstarlet sel -N xmlns="http://maven.apache.org/POM/4.0.0" -t -v "//xmlns:project/xmlns:artifactId" "$xml_file")       
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "GROUPID=$GROUPID" >> $GITHUB_ENV
+        echo "ARTIFACTID=$ARTIFACTID" >> $GITHUB_ENV
+
+    - name: Checkout artifact repo
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.artifact_repo }}
+        token: ${{ inputs.gh_pat }}
+
+    - name: Create package directories
+      run: |
+        mkdir -p ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}
+
+    - name: Copy JAR, POM, SHA-1, and MD5 files
+      run: |
+        FIRST_TERM=$(echo "${{ env.GROUPID }}" | cut -d'/' -f1)
+        cp -r ~/.m2/repository/$FIRST_TERM .
+        mv ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/maven-metadata-local.xml ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/maven-metadata.xml
+        sha1sum ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.jar > ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.jar.sha1
+        md5sum ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.jar > ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.jar.md5
+        sha1sum ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.pom > ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.pom.sha1
+        md5sum ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.pom > ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.pom.md5
+
+    - name: Commit and push files
+      run: |
+        git config user.name "${{ github.actor }}"
+        git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+        git add .
+        git commit -m "${{ env.GIT_MESSAGE }} https://github.com/${{ github.event.repository.full_name }}/commit/${{ env.GIT_HASH }}. Version: ${{ env.VERSION }}"
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ inputs.gh_pat }}
+        repository: ${{ inputs.artifact_repo }}
+        force_with_lease: true
