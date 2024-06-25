@@ -22,6 +22,7 @@ jobs:
           artifact_repo: 'RiV-chain/artifact'
           gradle_file_path: './gradlew'
           java_version: '8'
+          distribution: 'adopt'
 ```
 
 Add following lines in ```build.gradle``` build script:
