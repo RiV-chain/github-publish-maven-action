@@ -43,8 +43,8 @@ runs:
 
     - name: Build with Gradle
       run: |
-        ${{ inputs.gradle_file_path }} build
-        ${{ inputs.gradle_file_path }} publishToMavenLocal
+        bash ${{ inputs.gradle_file_path }} build
+        bash ${{ inputs.gradle_file_path }} publishToMavenLocal
       shell: bash
 
     - name: Extract artifactId, groupId, version from generated POM file
