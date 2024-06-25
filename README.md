@@ -24,6 +24,23 @@ jobs:
           java_version: '8'
 ```
 
+Add following lines in ```build.gradle``` build script:
+
+```
+publishing {
+    repositories {
+        mavenLocal()
+    }
+    publications {
+        gpr(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
+```
+
+Register ```secret.PAT``` with permission for you Maven repo and replace the path it in ```artifact_repo``` parameter.
+
 # Notes:
   * Permissions: Ensure your repository permissions allow this action to perform the required tasks, including checking out repositories and pushing changes.
   * Secrets: Ensure the ```${{ secrets.PAT }}``` secret is set in your Maven GitHub repository secrets.
