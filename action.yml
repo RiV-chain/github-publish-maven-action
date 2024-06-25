@@ -35,14 +35,17 @@ runs:
         GIT_HASH=$(git log --pretty=format:'%h' -n 1)
         echo "GIT_MESSAGE=$GIT_MESSAGE" >> $GITHUB_ENV
         echo "GIT_HASH=$GIT_HASH" >> $GITHUB_ENV
+      shell: bash
 
     - name: Install xmlstarlet
       run: sudo apt-get install -y xmlstarlet
+      shell: bash
 
     - name: Build with Gradle
       run: |
-        bash ${{ inputs.gradle_file_path }} build
-        bash ${{ inputs.gradle_file_path }} publishToMavenLocal
+        ${{ inputs.gradle_file_path }} build
+        ${{ inputs.gradle_file_path }} publishToMavenLocal
+      shell: bash
 
     - name: Extract artifactId, groupId, version from generated POM file
       id: extract_version
@@ -54,6 +57,7 @@ runs:
         echo "VERSION=$VERSION" >> $GITHUB_ENV
         echo "GROUPID=$GROUPID" >> $GITHUB_ENV
         echo "ARTIFACTID=$ARTIFACTID" >> $GITHUB_ENV
+      shell: bash
 
     - name: Checkout artifact repo
       uses: actions/checkout@v4
@@ -64,6 +68,7 @@ runs:
     - name: Create package directories
       run: |
         mkdir -p ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}
+      shell: bash
 
     - name: Copy JAR, POM, SHA-1, and MD5 files
       run: |
@@ -74,6 +79,7 @@ runs:
         md5sum ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.jar > ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.jar.md5
         sha1sum ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.pom > ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.pom.sha1
         md5sum ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.pom > ${{ env.GROUPID }}/${{ env.ARTIFACTID }}/${{ env.VERSION }}/${{ env.ARTIFACTID }}-${{ env.VERSION }}.pom.md5
+      shell: bash
 
     - name: Commit and push files
       run: |
@@ -81,6 +87,7 @@ runs:
         git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
         git add .
         git commit -m "${{ env.GIT_MESSAGE }} https://github.com/${{ github.event.repository.full_name }}/commit/${{ env.GIT_HASH }}. Version: ${{ env.VERSION }}"
+      shell: bash
 
     - name: Push changes
       uses: ad-m/github-push-action@master
