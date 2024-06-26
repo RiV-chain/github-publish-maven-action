@@ -25,7 +25,7 @@ jobs:
           distribution: 'adopt'
 ```
 
-Add following lines in ```build.gradle``` build script:
+1. Add following lines in ```build.gradle``` build script:
 
 ```
 publishing {
@@ -40,7 +40,17 @@ publishing {
 }
 ```
 
-Register ```secret.PAT``` with permission for you Maven repo and replace the path it in ```artifact_repo``` parameter.
+2. Register ```secret.PAT``` with permission for you Maven repo and replace the path it in ```artifact_repo``` parameter.
+
+4. Add your repo URL in build.gradle. Your Maven repo will have path ```https://github.com/<username>/<repo>/raw/<branch>```. Example [repo](https://github.com/RiV-chain/artifact).
+
+```
+    repositories {
+        maven {
+            url "https://github.com/RiV-chain/artifact/raw/main"
+        }
+    }
+```
 
 # Notes:
   * Permissions: Ensure your repository permissions allow this action to perform the required tasks, including checking out repositories and pushing changes.
